@@ -1,0 +1,7 @@
+# Suppress only reviewed, intentional changes. Location patterns use `*` wildcards.
+failOn: high
+format: terminal
+ignoreRules: []
+ignores:
+  - rule: RESPONSE_PROPERTY_REMOVED
+    location: '#/paths/~1internal/*'

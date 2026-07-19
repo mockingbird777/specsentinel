@@ -1,0 +1,31 @@
+name: SpecSentinel OpenAPI Contract Gate
+description: Detect breaking and security-strengthening OpenAPI changes in pull requests
+author: SpecSentinel contributors
+branding:
+  icon: shield
+  color: purple
+inputs:
+  baseline:
+    description: Path to the baseline OpenAPI document
+    required: true
+  candidate:
+    description: Path to the candidate OpenAPI document
+    required: true
+  fail-on:
+    description: Minimum severity that fails the check
+    required: false
+    default: high
+  format:
+    description: terminal, json, markdown, sarif, or html
+    required: false
+    default: terminal
+  config:
+    description: Optional SpecSentinel config file
+    required: false
+    default: ''
+outputs:
+  findings:
+    description: Number of unsuppressed findings
+runs:
+  using: node20
+  main: dist/action.cjs

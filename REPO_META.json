@@ -1,0 +1,14 @@
+{
+  "description": "Catch OpenAPI breaking changes and security regressions before they ship.",
+  "homepage": "https://mockingbird777.github.io/specsentinel/",
+  "topics": [
+    "openapi",
+    "api-governance",
+    "contract-testing",
+    "breaking-changes",
+    "devsecops",
+    "sarif",
+    "github-actions",
+    "typescript"
+  ]
+}

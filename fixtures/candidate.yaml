@@ -1,0 +1,84 @@
+openapi: 3.1.0
+info:
+  title: Pet Harbor API
+  version: 2.0.0
+security:
+  - ApiKey: []
+    OAuth2: [read:pets]
+paths:
+  /pets:
+    parameters:
+      - name: tenant
+        in: header
+        required: true
+        schema: { type: string }
+    get:
+      operationId: listPets
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            enum: [10]
+        - name: offset
+          in: query
+          schema: { type: string }
+        - name: cursor
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: A page of pets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetPage'
+    post:
+      operationId: createPet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    OAuth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://example.test/token
+          scopes:
+            read:pets: Read pets
+  schemas:
+    Pet:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    PetInput:
+      type: object
+      required: [name, tag]
+      properties:
+        name: { type: integer }
+        tag: { type: string }
+    PetPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pet'

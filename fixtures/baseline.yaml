@@ -1,0 +1,92 @@
+openapi: 3.1.0
+info:
+  title: Pet Harbor API
+  version: 1.0.0
+security:
+  - {}
+  - ApiKey: []
+paths:
+  /pets:
+    parameters:
+      - name: tenant
+        in: header
+        required: true
+        schema: { type: string }
+    get:
+      operationId: listPets
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            enum: [10, 20, 50]
+        - name: offset
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: A page of pets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetPage'
+        '404':
+          description: Tenant not found
+    post:
+      operationId: createPet
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+    delete:
+      operationId: deleteAllPets
+      responses:
+        '204': { description: Deleted }
+  /legacy:
+    get:
+      responses:
+        '200': { description: Legacy status }
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    OAuth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://example.test/token
+          scopes:
+            read:pets: Read pets
+  schemas:
+    Pet:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        tag: { type: string }
+    PetInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        tag: { type: string }
+    PetPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pet'
+        next: { type: string }

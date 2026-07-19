@@ -1,0 +1,62 @@
+{
+  "name": "specsentinel",
+  "version": "0.1.0",
+  "description": "Security-aware OpenAPI breaking-change detection for local development and CI",
+  "type": "module",
+  "bin": {
+    "specsentinel": "bin/specsentinel.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "bin",
+    "assets",
+    "action.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node --eval \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json && esbuild src/action.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/action.cjs",
+    "test": "npm run build && node --eval \"require('node:fs').rmSync('.test-dist',{recursive:true,force:true})\" && tsc -p tsconfig.test.json && node --test .test-dist/__tests__/*.test.js",
+    "check": "npm run build && npm test",
+    "prepare": "npm run build",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "openapi",
+    "api",
+    "breaking-change",
+    "contract-testing",
+    "security",
+    "sarif",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": "SpecSentinel contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mockingbird777/specsentinel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mockingbird777/specsentinel/issues"
+  },
+  "homepage": "https://github.com/mockingbird777/specsentinel#readme",
+  "dependencies": {
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "esbuild": "^0.25.5",
+    "typescript": "^5.8.3"
+  }
+}

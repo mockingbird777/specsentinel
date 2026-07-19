@@ -1,0 +1,13 @@
+node_modules/
+dist/*
+!dist/action.cjs
+.test-dist/
+coverage/
+*.log
+*.tgz
+.DS_Store
+.env
+.idea/
+.vscode/
+report.html
+specsentinel-results.*

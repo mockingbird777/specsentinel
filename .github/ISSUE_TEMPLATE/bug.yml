@@ -1,0 +1,45 @@
+name: Bug report
+description: Report an incorrect finding, crash, or reporter problem
+title: "bug: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include private contracts or credentials. Reduce the input to the smallest safe example.
+  - type: input
+    id: version
+    attributes:
+      label: SpecSentinel version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Problem type
+      options:
+        - False positive
+        - Missed breaking change
+        - Crash or invalid exit code
+        - Report formatting
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include safe baseline/candidate snippets and the exact command.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Node 20.15, macOS 15

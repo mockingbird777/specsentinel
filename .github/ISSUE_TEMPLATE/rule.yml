@@ -1,0 +1,31 @@
+name: Rule proposal
+description: Propose a new OpenAPI compatibility rule
+title: "rule: "
+labels: [enhancement, rule]
+body:
+  - type: textarea
+    id: break
+    attributes:
+      label: Client-breaking scenario
+      description: Explain which previously valid client behavior fails.
+    validations:
+      required: true
+  - type: textarea
+    id: fixture
+    attributes:
+      label: Minimal baseline and candidate
+      description: Provide safe, minimal OpenAPI snippets.
+    validations:
+      required: true
+  - type: input
+    id: id
+    attributes:
+      label: Suggested rule ID and severity
+      placeholder: EXAMPLE_CHANGED — high
+  - type: textarea
+    id: counterexamples
+    attributes:
+      label: Compatible counterexamples
+      description: What similar changes should not trigger this rule?
+    validations:
+      required: true
