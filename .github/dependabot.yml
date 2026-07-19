@@ -9,3 +9,7 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-major
+      # esbuild 0.x minor releases may raise the supported Node.js floor.
+      - dependency-name: esbuild
+        update-types:
+          - version-update:semver-minor
