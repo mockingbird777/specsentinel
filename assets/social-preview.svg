@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">SpecSentinel</title>
+  <desc id="desc">Security-aware OpenAPI breaking-change detection</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#070c1a"/><stop offset=".58" stop-color="#151332"/><stop offset="1" stop-color="#071522"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#7c3aed" stop-opacity=".42"/><stop offset="1" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
+    <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M44 0H0V44" fill="none" stroke="#c4b5fd" stroke-opacity=".055"/></pattern>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <circle cx="180" cy="122" r="380" fill="url(#glow)"/>
+  <g transform="translate(94 135)">
+    <path d="M162 0 300 52v104c0 95-54 157-138 194C78 313 24 251 24 156V52Z" fill="#10182f" stroke="url(#accent)" stroke-width="8"/>
+    <path d="m96 174 42 42 94-102" fill="none" stroke="url(#accent)" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g font-family="Inter, ui-sans-serif, system-ui, sans-serif">
+    <text x="470" y="245" fill="#f8fafc" font-size="82" font-weight="850" letter-spacing="-4">SpecSentinel</text>
+    <text x="476" y="302" fill="#c4b5fd" font-size="22" font-weight="750" letter-spacing="2.8">OPENAPI CONTRACT INTELLIGENCE</text>
+    <text x="476" y="381" fill="#d7deee" font-size="29" font-weight="600">Catch breaking changes and security surprises</text>
+    <text x="476" y="423" fill="#9eabc2" font-size="27">before your clients do.</text>
+    <g transform="translate(476 478)">
+      <rect width="145" height="44" rx="22" fill="#8b5cf6" fill-opacity=".16" stroke="#a78bfa" stroke-opacity=".55"/><text x="72" y="29" fill="#e9ddff" font-size="14" text-anchor="middle" font-weight="750">OPENAPI 3.x</text>
+      <rect x="161" width="116" height="44" rx="22" fill="#0891b2" fill-opacity=".14" stroke="#22d3ee" stroke-opacity=".5"/><text x="219" y="29" fill="#c5f7ff" font-size="14" text-anchor="middle" font-weight="750">SARIF</text>
+      <rect x="293" width="164" height="44" rx="22" fill="#334155" fill-opacity=".42" stroke="#64748b" stroke-opacity=".6"/><text x="375" y="29" fill="#e2e8f0" font-size="14" text-anchor="middle" font-weight="750">GITHUB ACTION</text>
+    </g>
+  </g>
+</svg>

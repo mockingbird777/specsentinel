@@ -1,6 +1,6 @@
 {
   "name": "specsentinel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Security-aware OpenAPI breaking-change detection for local development and CI",
   "type": "module",
   "bin": {
@@ -17,7 +17,8 @@
   "files": [
     "dist",
     "bin",
-    "assets",
+    "assets/banner.svg",
+    "fixtures",
     "action.yml",
     "README.md",
     "LICENSE"

@@ -7870,7 +7870,7 @@ function summary(changes) {
 function makeResult(input2, changes) {
   return {
     tool: "SpecSentinel",
-    version: "0.1.0",
+    version: "0.2.0",
     baseline: input2.baselineSource ?? "<baseline>",
     candidate: input2.candidateSource ?? "<candidate>",
     generatedAt: input2.generatedAt ?? (/* @__PURE__ */ new Date()).toISOString(),

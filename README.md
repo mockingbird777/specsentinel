@@ -8,14 +8,15 @@
 
 <p align="center">
   <a href="https://github.com/mockingbird777/specsentinel/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/mockingbird777/specsentinel/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://mockingbird777.github.io/specsentinel/"><img alt="Live report" src="https://img.shields.io/badge/report-live-a78bfa?style=flat-square"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square"></a>
   <img alt="Node 20+" src="https://img.shields.io/badge/node-%E2%89%A520-38a169?style=flat-square">
   <img alt="OpenAPI 3.x" src="https://img.shields.io/badge/OpenAPI-3.x-6ba539?style=flat-square">
 </p>
 
-SpecSentinel compares two OpenAPI 3.x documents and flags common client-contract incompatibilities. It understands operations, parameters, recursive request and response schemas, local `$ref` components, and OpenAPI security alternatives. Reports can be read in a terminal, posted to a pull request, uploaded to GitHub Code Scanning, or shared as a self-contained HTML file.
+SpecSentinel compares two OpenAPI 3.x documents and flags client-contract incompatibilities before they reach an SDK or production consumer. It understands operations, parameters, recursive request and response schemas, local `$ref` components, and OpenAPI security alternatives. Reports work in a terminal, pull request, GitHub Code Scanning workflow, or self-contained HTML file.
 
-<p align="center"><a href="https://mockingbird777.github.io/specsentinel/"><strong>Explore a live contract-diff report →</strong></a></p>
+<p align="center"><a href="https://mockingbird777.github.io/specsentinel/"><strong>Explore a live contract-diff report</strong></a> · <a href="#30-second-demo">Run the zero-setup demo</a> · <a href="https://github.com/mockingbird777/specsentinel/issues/new/choose">Propose a rule</a></p>
 
 ## Why SpecSentinel
 
@@ -25,39 +26,59 @@ SpecSentinel compares two OpenAPI 3.x documents and flags common client-contract
 - **Portable.** JSON and YAML input, five report formats, Node.js 20+, and one small runtime dependency.
 - **Embeddable.** Use the CLI or import the typed diff engine in a governance tool.
 
-## Quick start
+| Compared with | SpecSentinel's focus |
+| --- | --- |
+| A line-by-line YAML diff | OpenAPI semantics and client compatibility |
+| A generic schema validator | Changes between two valid contracts |
+| A breaking-change list only | Security alternatives, OAuth scopes, stable rule IDs, and actionable locations |
+| A CI-only service | The same deterministic engine locally, in Actions, or as a library |
+
+## 30-second demo
+
+Node.js 20+ is the only requirement. The demo analyzes two bundled OpenAPI contracts, so there are no files to download or configure:
 
 ```bash
-npx --yes github:mockingbird777/specsentinel openapi.before.yaml openapi.yaml
+npx --yes github:mockingbird777/specsentinel demo
 ```
 
-The package is not published to the npm registry yet. To install the current GitHub source in a project:
-
-```bash
-npm install --save-dev github:mockingbird777/specsentinel#main
-npx specsentinel diff api/baseline.yaml api/openapi.yaml --fail-on high
-```
-
-Example output:
+Abridged output:
 
 ```text
-SpecSentinel 0.1.0
-Comparing api/baseline.yaml → api/openapi.yaml
+SpecSentinel 0.2.0
+Comparing demo/baseline.yaml → demo/candidate.yaml
 
-[HIGH] PARAM_REQUIRED_ADDED #/paths/~1pets/get/parameters/query/cursor
-  Required query parameter 'cursor' was added.
+[CRITICAL] PATH_REMOVED #/paths/~1legacy
+  Path '/legacy' was removed.
 [HIGH] SECURITY_STRENGTHENED #/paths/~1pets/get/security
   Security requirements became stricter for previously valid requests.
 
-2 incompatible changes (2 high)
+…
+16 incompatible changes (2 critical, 14 high)
 ```
 
-Try the included realistic fixture:
+The showcase exits successfully so it is safe to paste into a shell. Add `--fail-on high` to exercise the CI gate and receive exit code `1`.
+
+## Check your API
+
+Compare a committed or released contract with the candidate produced by your branch:
 
 ```bash
-npm install
-npm run build
-node dist/cli.js fixtures/baseline.yaml fixtures/candidate.yaml --format markdown
+npx --yes github:mockingbird777/specsentinel \
+  api/openapi.baseline.yaml api/openapi.yaml \
+  --fail-on high
+```
+
+For a pinned project dependency:
+
+```bash
+npm install --save-dev github:mockingbird777/specsentinel#v0.2.0
+npx specsentinel api/openapi.baseline.yaml api/openapi.yaml --fail-on high
+```
+
+Generate a reviewable artifact without changing the gate behavior:
+
+```bash
+npx specsentinel old.yaml new.yaml --format html --output contract-report.html
 ```
 
 ## Rule matrix
@@ -144,7 +165,7 @@ jobs:
       - name: Materialize baseline from the target branch
         run: git show "origin/${{ github.base_ref }}:api/openapi.yaml" > /tmp/openapi.baseline.yaml
       - name: Guard the contract
-        uses: mockingbird777/specsentinel@v0.1.0
+        uses: mockingbird777/specsentinel@v0.2.0
         with:
           baseline: /tmp/openapi.baseline.yaml
           candidate: api/openapi.yaml
@@ -208,6 +229,8 @@ Suggested topics: `openapi`, `api-governance`, `contract-testing`, `breaking-cha
 
 ## Contributing and security
 
-Bug reports, rules, and focused compatibility fixtures are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md) before opening a contribution.
+The most useful first contributions are a minimal baseline/candidate pair for a missing compatibility edge case, a false-positive report with a counterexample, or a focused reporter improvement. Start with [CONTRIBUTING.md](CONTRIBUTING.md) or [propose a rule](https://github.com/mockingbird777/specsentinel/issues/new/choose). Read the [Code of Conduct](CODE_OF_CONDUCT.md), and use the private process in [SECURITY.md](SECURITY.md) for vulnerabilities.
+
+If SpecSentinel prevents a client-breaking change in a real API, a GitHub star helps other API teams find it.
 
 Released under the [MIT License](LICENSE).

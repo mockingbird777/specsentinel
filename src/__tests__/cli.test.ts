@@ -35,6 +35,20 @@ test('CLI returns 0 for compatible input', () => {
   assert.match(execution.stdout, /No incompatible changes/);
 });
 
+test('CLI demo shows bundled breaking changes without failing the shell', () => {
+  const execution = spawnSync(process.execPath, [resolve('dist/cli.js'), 'demo', '--format', 'json'], { encoding: 'utf8' });
+  assert.equal(execution.status, 0, execution.stderr);
+  const report = JSON.parse(execution.stdout) as { baseline: string; candidate: string; summary: { total: number } };
+  assert.equal(report.baseline, 'demo/baseline.yaml');
+  assert.equal(report.candidate, 'demo/candidate.yaml');
+  assert.ok(report.summary.total > 0);
+});
+
+test('CLI demo respects an explicit failure threshold', () => {
+  const execution = spawnSync(process.execPath, [resolve('dist/cli.js'), 'demo', '--fail-on', 'critical'], { encoding: 'utf8' });
+  assert.equal(execution.status, 1, execution.stderr);
+});
+
 test('bundled Action escapes workflow-command control characters in errors', () => {
   const execution = spawnSync(process.execPath, [resolve('dist/action.cjs')], {
     encoding: 'utf8',

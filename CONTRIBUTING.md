@@ -32,6 +32,17 @@ Before implementation, open a rule proposal that includes:
 
 Rules should be deterministic and conservative: a false green is dangerous, but noisy false positives teach users to ignore the tool. Add fixtures and tests for both breaking and compatible cases. Keep reporting separate from detection logic.
 
+## Good first contributions
+
+Focused evidence is more valuable than a large patch. Good starting points include:
+
+- A minimal baseline/candidate fixture that demonstrates a missing OpenAPI compatibility edge case.
+- A false-positive counterexample for an existing rule, with the compatible behavior explained from a client's perspective.
+- A reporter test covering a difficult path, control character, or untrusted description.
+- A documentation example for using existing JSON, SARIF, Markdown, or HTML output in a real review workflow.
+
+Use the [rule or bug template](https://github.com/mockingbird777/specsentinel/issues/new/choose) to agree on expected behavior before implementing a new detector.
+
 ## Pull requests
 
 - Keep changes scoped to one concern.

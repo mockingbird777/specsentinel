@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import { writeFile } from 'node:fs/promises';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { compareFiles } from './compare.js';
 import { SpecSentinelError } from './errors.js';
 import { formatResult } from './reporters/index.js';
 import { severityAtLeast, severityOrder, type OutputFormat, type Severity } from './types.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const formats: OutputFormat[] = ['terminal', 'json', 'markdown', 'sarif', 'html'];
 
 interface CliOptions {
@@ -25,6 +25,7 @@ interface CliOptions {
 const help = `SpecSentinel ${VERSION} — security-aware OpenAPI contract diff
 
 Usage:
+  specsentinel demo [options]
   specsentinel [diff] <baseline> <candidate> [options]
 
 Options:
@@ -87,7 +88,15 @@ export function parseArguments(argv: string[]): CliOptions {
 
 export async function runCli(argv = process.argv.slice(2)): Promise<number> {
   try {
-    const options = parseArguments(argv);
+    const demoRequested = argv[0] === 'demo';
+    const argumentsToParse = demoRequested
+      ? [
+          fileURLToPath(new URL('../fixtures/baseline.yaml', import.meta.url)),
+          fileURLToPath(new URL('../fixtures/candidate.yaml', import.meta.url)),
+          ...argv.slice(1)
+        ]
+      : argv;
+    const options = parseArguments(argumentsToParse);
     if (options.help) { process.stdout.write(`${help}\n`); return 0; }
     if (options.version) { process.stdout.write(`${VERSION}\n`); return 0; }
     if (!options.baseline || !options.candidate) throw new SpecSentinelError('Both baseline and candidate documents are required. Run with --help for usage.');
@@ -96,12 +105,18 @@ export async function runCli(argv = process.argv.slice(2)): Promise<number> {
       baseline: options.baseline, candidate: options.candidate,
       ...(options.config ? { config: options.config } : {}), ignoreRules: options.ignores
     });
+    if (demoRequested) {
+      result.baseline = 'demo/baseline.yaml';
+      result.candidate = 'demo/candidate.yaml';
+    }
     const format = options.format ?? config.format ?? 'terminal';
     const rendered = formatResult(result, format, { color: options.color && Boolean(process.stdout.isTTY) });
     if (options.output) await writeFile(options.output, `${rendered}\n`, 'utf8');
     else process.stdout.write(`${rendered}\n`);
-    const threshold = options.failOn ?? config.failOn ?? 'high';
-    return result.changes.some((change) => severityAtLeast(change.severity, threshold)) ? 1 : 0;
+    const configuredThreshold = options.failOn ?? config.failOn;
+    const threshold = configuredThreshold ?? 'high';
+    const thresholdReached = result.changes.some((change) => severityAtLeast(change.severity, threshold));
+    return demoRequested && configuredThreshold === undefined ? 0 : thresholdReached ? 1 : 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`SpecSentinel: ${message}\n`);
