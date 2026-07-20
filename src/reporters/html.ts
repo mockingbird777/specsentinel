@@ -15,7 +15,12 @@ export function htmlReport(result: DiffResult): string {
   const data = JSON.stringify(result).replaceAll('<', '\\u003c');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SpecSentinel report</title><style>
+<meta name="description" content="Catch breaking and security-sensitive OpenAPI changes before they ship with a local, self-contained contract report.">
+<meta property="og:type" content="website"><meta property="og:title" content="SpecSentinel · OpenAPI contract report">
+<meta property="og:description" content="Catch breaking and security-sensitive OpenAPI changes before they ship with a local, self-contained contract report.">
+<meta name="twitter:card" content="summary"><meta name="twitter:title" content="SpecSentinel · OpenAPI contract report">
+<meta name="twitter:description" content="Catch breaking and security-sensitive OpenAPI changes before they ship with a local, self-contained contract report.">
+<title>SpecSentinel · OpenAPI contract report</title><style>
 :root{color-scheme:dark;--bg:#0b1020;--panel:#131b31;--text:#e8edf8;--muted:#98a6c5;--line:#263454;--accent:#8b5cf6}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#21214b 0,transparent 34%),var(--bg);color:var(--text);font:15px/1.55 Inter,ui-sans-serif,system-ui,sans-serif}
 main{width:min(1020px,calc(100% - 32px));margin:48px auto 80px}.hero{padding:32px;border:1px solid var(--line);background:linear-gradient(140deg,#171f39dd,#11182bdd);border-radius:20px;box-shadow:0 24px 70px #0008}

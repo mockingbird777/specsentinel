@@ -114,6 +114,16 @@ test('renders machine-readable JSON and SARIF plus Markdown and standalone HTML'
   assert.match(formatResult(result, 'markdown'), /\| Severity \| Rule \|/);
   const html = formatResult(result, 'html');
   assert.match(html, /<!doctype html>/);
+  for (const metadata of [
+    '<meta name="description" content="Catch breaking and security-sensitive OpenAPI changes before they ship with a local, self-contained contract report.">',
+    '<meta property="og:type" content="website">',
+    '<meta property="og:title" content="SpecSentinel · OpenAPI contract report">',
+    '<meta property="og:description" content="Catch breaking and security-sensitive OpenAPI changes before they ship with a local, self-contained contract report.">',
+    '<meta name="twitter:card" content="summary">',
+    '<meta name="twitter:title" content="SpecSentinel · OpenAPI contract report">',
+    '<meta name="twitter:description" content="Catch breaking and security-sensitive OpenAPI changes before they ship with a local, self-contained contract report.">'
+  ]) assert.ok(html.includes(metadata), `missing metadata: ${metadata}`);
+  assert.doesNotMatch(html, /(?:og:image|twitter:image)/);
   assert.match(html, /<a href="https:\/\/github\.com\/mockingbird777\/specsentinel" target="_blank" rel="noopener noreferrer">Explore SpecSentinel on GitHub ↗<\/a>/);
   assert.doesNotMatch(html, /<(?:script|img|link)\b[^>]*(?:src|href)="https?:\/\//);
   assert.match(formatResult(makeResult({ baseline: {}, candidate: {}, generatedAt: 'fixed' }, []), 'html'), /No incompatible changes/);
