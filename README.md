@@ -111,6 +111,9 @@ specsentinel old.yaml new.yaml
 # Stable automation payload
 specsentinel old.yaml new.yaml --format json --output report.json
 
+# pipe a report in CI ('-' writes to stdout)
+specsentinel old.yaml new.yaml --format json --output - | jq .summary
+
 # Pull-request summary
 specsentinel old.yaml new.yaml --format markdown --output report.md
 

@@ -30,7 +30,7 @@ Usage:
 
 Options:
   -f, --format <name>     terminal | json | markdown | sarif | html
-  -o, --output <file>     Write the report to a file
+  -o, --output <file>     Write the report to a file ('-' writes to stdout)
       --fail-on <level>   info | low | medium | high | critical (default: high)
       --ignore <rule>     Ignore a rule ID; repeat or use comma-separated IDs
   -c, --config <file>     YAML or JSON configuration
@@ -40,9 +40,9 @@ Options:
 
 Exit codes: 0 compatible, 1 threshold reached, 2 usage/input/config error.`;
 
-function valueAfter(args: string[], index: number, option: string): string {
+function valueAfter(args: string[], index: number, option: string, allowDash = false): string {
   const value = args[index + 1];
-  if (!value || value.startsWith('-')) throw new SpecSentinelError(`${option} requires a value`);
+  if (!value || (value.startsWith('-') && !(allowDash && value === '-'))) throw new SpecSentinelError(`${option} requires a value`);
   return value;
 }
 
@@ -54,7 +54,7 @@ export function parseArguments(argv: string[]): CliOptions {
     const equals = argument.startsWith('--') ? argument.indexOf('=') : -1;
     const option = equals > 0 ? argument.slice(0, equals) : argument;
     const inlineValue = equals > 0 ? argument.slice(equals + 1) : undefined;
-    const take = (): string => inlineValue ?? valueAfter(argv, index++, option);
+    const take = (allowDash = false): string => inlineValue ?? valueAfter(argv, index++, option, allowDash);
     switch (option) {
       case 'diff':
         if (positional.length > 0) positional.push(argument);
@@ -67,7 +67,7 @@ export function parseArguments(argv: string[]): CliOptions {
         if (!formats.includes(value)) throw new SpecSentinelError(`Unknown format '${value}'`);
         options.format = value; break;
       }
-      case '-o': case '--output': options.output = take(); break;
+      case '-o': case '--output': options.output = take(true); break;
       case '-c': case '--config': options.config = take(); break;
       case '--fail-on': {
         const value = take() as Severity;
@@ -111,7 +111,7 @@ export async function runCli(argv = process.argv.slice(2)): Promise<number> {
     }
     const format = options.format ?? config.format ?? 'terminal';
     const rendered = formatResult(result, format, { color: options.color && Boolean(process.stdout.isTTY) });
-    if (options.output) await writeFile(options.output, `${rendered}\n`, 'utf8');
+    if (options.output && options.output !== '-') await writeFile(options.output, `${rendered}\n`, 'utf8');
     else process.stdout.write(`${rendered}\n`);
     const configuredThreshold = options.failOn ?? config.failOn;
     const threshold = configuredThreshold ?? 'high';

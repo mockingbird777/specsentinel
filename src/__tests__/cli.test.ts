@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
 import { parseArguments } from '../cli.js';
@@ -63,4 +66,31 @@ test('bundled Action escapes workflow-command control characters in errors', () 
   assert.equal(execution.status, 2);
   assert.doesNotMatch(execution.stderr, /\n::warning/);
   assert.match(execution.stderr, /%0A::warning/);
+});
+
+test('parses dash output target in all three spellings', () => {
+  for (const args of [
+    ['a.yaml', 'b.yaml', '--output', '-'],
+    ['a.yaml', 'b.yaml', '-o', '-'],
+    ['a.yaml', 'b.yaml', '--output=-']
+  ]) {
+    assert.equal(parseArguments(args).output, '-', args.join(' '));
+  }
+});
+
+test('CLI --output - writes the report to stdout and creates no dash file', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'specsentinel-cli-'));
+  try {
+    const execution = spawnSync(process.execPath, [
+      resolve('dist/cli.js'), resolve('fixtures/baseline.yaml'), resolve('fixtures/candidate.yaml'),
+      '--format', 'json', '--output', '-'
+    ], { encoding: 'utf8', cwd: directory });
+    assert.equal(execution.status, 1, execution.stderr); // threshold behaviour unchanged
+    assert.ok(execution.stdout.endsWith('}\n'), 'report plus one trailing newline');
+    const report = JSON.parse(execution.stdout) as { summary: { total: number } };
+    assert.ok(report.summary.total > 0);
+    assert.equal(existsSync(join(directory, '-')), false, 'no dash-named file');
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
