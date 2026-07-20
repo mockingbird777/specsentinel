@@ -2,12 +2,12 @@
 
 ## Supported versions
 
-Before the first tagged release, security fixes land on `main`. After releases begin, only the latest minor line will receive security fixes until 1.0.
+Until SpecSentinel reaches 1.0, security fixes are released on the latest minor line.
 
 | Version | Supported |
 | --- | --- |
-| `main` | Yes |
-| Tagged releases | Latest minor line only |
+| `0.2.x` | Yes |
+| Earlier | No |
 
 ## Reporting a vulnerability
 
