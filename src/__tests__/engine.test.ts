@@ -112,7 +112,10 @@ test('renders machine-readable JSON and SARIF plus Markdown and standalone HTML'
   assert.equal(sarif.version, '2.1.0');
   assert.equal(sarif.runs.length, 1);
   assert.match(formatResult(result, 'markdown'), /\| Severity \| Rule \|/);
-  assert.match(formatResult(result, 'html'), /<!doctype html>/);
+  const html = formatResult(result, 'html');
+  assert.match(html, /<!doctype html>/);
+  assert.match(html, /<a href="https:\/\/github\.com\/mockingbird777\/specsentinel" target="_blank" rel="noopener noreferrer">Explore SpecSentinel on GitHub ↗<\/a>/);
+  assert.doesNotMatch(html, /<(?:script|img|link)\b[^>]*(?:src|href)="https?:\/\//);
   assert.match(formatResult(makeResult({ baseline: {}, candidate: {}, generatedAt: 'fixed' }, []), 'html'), /No incompatible changes/);
 });
 
