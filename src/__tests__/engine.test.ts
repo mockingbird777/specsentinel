@@ -223,3 +223,111 @@ test('escapes untrusted report fields in Markdown and standalone HTML', () => {
   assert.doesNotMatch(terminal, /\u001b|\u0007/);
   assert.match(terminal, /\\u001b.*\\u0007.*\\nnext/);
 });
+
+function docWithRequestType(typeYaml: string): string {
+  return [
+    'openapi: 3.1.0',
+    "info: { title: T, version: '1' }",
+    'paths:',
+    '  /widgets:',
+    '    post:',
+    '      requestBody:',
+    '        content:',
+    '          application/json:',
+    '            schema:',
+    '              type: object',
+    '              properties:',
+    `                name: { type: ${typeYaml} }`,
+    "      responses: { '200': { description: OK } }",
+  ].join('\n');
+}
+
+function docWithResponseType(typeYaml: string): string {
+  return [
+    'openapi: 3.1.0',
+    "info: { title: T, version: '1' }",
+    'paths:',
+    '  /widgets:',
+    '    get:',
+    '      responses:',
+    "        '200':",
+    '          description: OK',
+    '          content:',
+    '            application/json:',
+    '              schema:',
+    '                type: object',
+    '                properties:',
+    `                  name: { type: ${typeYaml} }`,
+  ].join('\n');
+}
+
+test('reordering type-union members does not report a request TYPE_CHANGED finding', () => {
+  const baseline = parseOpenApi(docWithRequestType('[string, "null"]'));
+  const candidate = parseOpenApi(docWithRequestType('["null", string]'));
+  const result = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(
+    result.changes.filter((change) => change.ruleId === 'REQUEST_TYPE_CHANGED').length,
+    0,
+  );
+});
+
+test('reordering type-union members does not report a response TYPE_CHANGED finding', () => {
+  const baseline = parseOpenApi(docWithResponseType('[string, "null"]'));
+  const candidate = parseOpenApi(docWithResponseType('["null", string]'));
+  const result = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(
+    result.changes.filter((change) => change.ruleId === 'RESPONSE_TYPE_CHANGED').length,
+    0,
+  );
+});
+
+test('adding a real union member still reports a request TYPE_CHANGED finding', () => {
+  const baseline = parseOpenApi(docWithRequestType('[string]'));
+  const candidate = parseOpenApi(docWithRequestType('[string, "null"]'));
+  const result = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(
+    result.changes.filter((change) => change.ruleId === 'REQUEST_TYPE_CHANGED').length,
+    1,
+  );
+});
+
+test('removing a real union member still reports a response TYPE_CHANGED finding', () => {
+  const baseline = parseOpenApi(docWithResponseType('[string, "null"]'));
+  const candidate = parseOpenApi(docWithResponseType('[string]'));
+  const result = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(
+    result.changes.filter((change) => change.ruleId === 'RESPONSE_TYPE_CHANGED').length,
+    1,
+  );
+});
+
+test('type-union reordering is order-insensitive for JSON input too', () => {
+  const baselineJson = JSON.stringify({
+    openapi: '3.1.0',
+    info: { title: 'T', version: '1' },
+    paths: {
+      '/widgets': {
+        post: {
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { name: { type: ['string', 'null'] } } },
+              },
+            },
+          },
+          responses: { '200': { description: 'OK' } },
+        },
+      },
+    },
+  });
+  const candidateJson = baselineJson.replace('["string","null"]', '["null","string"]');
+  const result = diffOpenApi({
+    baseline: parseOpenApi(baselineJson),
+    candidate: parseOpenApi(candidateJson),
+    generatedAt: 'fixed',
+  });
+  assert.equal(
+    result.changes.filter((change) => change.ruleId === 'REQUEST_TYPE_CHANGED').length,
+    0,
+  );
+});

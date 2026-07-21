@@ -18,6 +18,18 @@ function schemaType(schema: JsonObject | undefined): unknown {
   return undefined;
 }
 
+// OpenAPI 3.1 allows `type` to be an array (a union). Reordering identical
+// members is semantically equivalent, so compare unions as sorted sets — a
+// reorder is a no-op, while adding/removing a member still differs. Scalar
+// types are returned unchanged. Only used for the equality check; the reported
+// before/after keep the author's original ordering.
+function typeComparisonKey(type: unknown): string {
+  if (Array.isArray(type)) {
+    return JSON.stringify([...new Set(type.map((member) => JSON.stringify(member)))].sort());
+  }
+  return JSON.stringify(type);
+}
+
 function requiredSet(schema: JsonObject | undefined): Set<string> {
   return new Set(Array.isArray(schema?.required) ? schema.required.filter((item): item is string => typeof item === 'string') : []);
 }
@@ -44,7 +56,7 @@ export function compareRequestSchema(beforeValue: unknown, afterValue: unknown, 
 
   const beforeType = schemaType(before);
   const afterType = schemaType(after);
-  if (beforeType !== undefined && afterType !== undefined && JSON.stringify(beforeType) !== JSON.stringify(afterType)) {
+  if (beforeType !== undefined && afterType !== undefined && typeComparisonKey(beforeType) !== typeComparisonKey(afterType)) {
     context.changes.push({
       ruleId: 'REQUEST_TYPE_CHANGED', severity: 'high', location: `${context.location}/type`,
       message: `Request schema type changed from ${JSON.stringify(beforeType)} to ${JSON.stringify(afterType)}.`,
@@ -96,7 +108,7 @@ export function compareResponseSchema(beforeValue: unknown, afterValue: unknown,
 
   const beforeType = schemaType(before);
   const afterType = schemaType(after);
-  if (beforeType !== undefined && afterType !== undefined && JSON.stringify(beforeType) !== JSON.stringify(afterType)) {
+  if (beforeType !== undefined && afterType !== undefined && typeComparisonKey(beforeType) !== typeComparisonKey(afterType)) {
     context.changes.push({
       ruleId: 'RESPONSE_TYPE_CHANGED', severity: 'high', location: `${context.location}/type`,
       message: `Response schema type changed from ${JSON.stringify(beforeType)} to ${JSON.stringify(afterType)}.`,
