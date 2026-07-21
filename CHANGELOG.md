@@ -4,6 +4,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Fixed
+
+- OpenAPI 3.1 `type` unions are compared order-insensitively: reordering identical members no longer reports a request/response `TYPE_CHANGED` finding, while adding or removing a member still does.
+
 ## [0.2.0] - 2026-07-20
 
 ### Added
