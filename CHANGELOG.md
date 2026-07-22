@@ -4,6 +4,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-22
+
 ### Added
 
 - Add `SECURITY_ACCESS_BROADENED` for contract-declared access widening: newly anonymous operations, removed OAuth/OpenID scopes, and newly accepted weaker security alternatives. The rule is available in CLI, library, Action, JSON, Markdown, HTML, terminal, and SARIF output.
@@ -34,6 +36,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Severity-based exit gates, whole-rule ignores, and location-scoped wildcard suppressions.
 - Typed library API, Node 20 GitHub Action, CI workflow, fixtures, and test suite.
 
-[Unreleased]: https://github.com/mockingbird777/specsentinel/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mockingbird777/specsentinel/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mockingbird777/specsentinel/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/mockingbird777/specsentinel/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mockingbird777/specsentinel/releases/tag/v0.1.0

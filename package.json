@@ -1,6 +1,6 @@
 {
   "name": "specsentinel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "OpenAPI breaking-change and declared security-access drift detection for local development and CI",
   "type": "module",
   "bin": {

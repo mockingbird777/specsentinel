@@ -73,7 +73,7 @@ npx --yes github:mockingbird777/specsentinel \
 For a pinned project dependency:
 
 ```bash
-npm install --save-dev github:mockingbird777/specsentinel#v0.2.0
+npm install --save-dev github:mockingbird777/specsentinel#v0.3.0
 npx specsentinel api/openapi.baseline.yaml api/openapi.yaml --fail-on high
 ```
 
@@ -175,7 +175,7 @@ jobs:
       - name: Materialize baseline from the target branch
         run: git show "origin/${{ github.base_ref }}:api/openapi.yaml" > /tmp/openapi.baseline.yaml
       - name: Guard the contract
-        uses: mockingbird777/specsentinel@v0.2.0
+        uses: mockingbird777/specsentinel@v0.3.0
         with:
           baseline: /tmp/openapi.baseline.yaml
           candidate: api/openapi.yaml

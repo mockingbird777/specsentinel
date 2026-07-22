@@ -173,7 +173,7 @@ function summary(changes: Change[]): DiffSummary {
 
 export function makeResult(input: DiffInput, changes: Change[]): DiffResult {
   return {
-    tool: 'SpecSentinel', version: '0.2.0',
+    tool: 'SpecSentinel', version: '0.3.0',
     baseline: input.baselineSource ?? '<baseline>', candidate: input.candidateSource ?? '<candidate>',
     generatedAt: input.generatedAt ?? new Date().toISOString(), summary: summary(changes), changes
   };

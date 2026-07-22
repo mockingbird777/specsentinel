@@ -6,7 +6,7 @@ import { SpecSentinelError } from './errors.js';
 import { formatResult } from './reporters/index.js';
 import { severityAtLeast, severityOrder, type OutputFormat, type Severity } from './types.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const formats: OutputFormat[] = ['terminal', 'json', 'markdown', 'sarif', 'html'];
 
 interface CliOptions {

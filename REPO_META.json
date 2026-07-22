@@ -9,6 +9,8 @@
     "devsecops",
     "sarif",
     "github-actions",
-    "typescript"
+    "typescript",
+    "api-security",
+    "oauth2"
   ]
 }
