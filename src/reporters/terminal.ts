@@ -23,7 +23,7 @@ export function terminalReport(result: DiffResult, color = true): string {
     ''
   ];
   if (result.changes.length === 0) {
-    lines.push(color ? '\u001b[32m✓ No incompatible changes found.\u001b[0m' : '✓ No incompatible changes found.');
+    lines.push(color ? '\u001b[32m✓ No breaking or security-sensitive changes found.\u001b[0m' : '✓ No breaking or security-sensitive changes found.');
     return lines.join('\n');
   }
   for (const change of result.changes) {
@@ -35,6 +35,6 @@ export function terminalReport(result: DiffResult, color = true): string {
     .filter((severity) => result.summary.bySeverity[severity] > 0)
     .map((severity) => `${result.summary.bySeverity[severity]} ${severity}`)
     .join(', ');
-  lines.push('', `${result.summary.total} incompatible change${result.summary.total === 1 ? '' : 's'} (${counts})`);
+  lines.push('', `${result.summary.total} finding${result.summary.total === 1 ? '' : 's'} (${counts})`);
   return lines.join('\n');
 }

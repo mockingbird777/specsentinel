@@ -4,9 +4,13 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- Add `SECURITY_ACCESS_BROADENED` for contract-declared access widening: newly anonymous operations, removed OAuth/OpenID scopes, and newly accepted weaker security alternatives. The rule is available in CLI, library, Action, JSON, Markdown, HTML, terminal, and SARIF output.
+
 ### Fixed
 
-- OpenAPI 3.1 `type` unions are compared order-insensitively: reordering identical members no longer reports a request/response `TYPE_CHANGED` finding, while adding or removing a member still does.
+- OpenAPI 3.1 `type` unions are compared order-insensitively for parameters and recursive request/response schemas: reordering identical members no longer reports a `TYPE_CHANGED` finding, while adding or removing a member still does.
 
 ## [0.2.0] - 2026-07-20
 

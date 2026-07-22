@@ -30,6 +30,10 @@ function typeComparisonKey(type: unknown): string {
   return JSON.stringify(type);
 }
 
+export function schemaTypesEqual(before: unknown, after: unknown): boolean {
+  return typeComparisonKey(before) === typeComparisonKey(after);
+}
+
 function requiredSet(schema: JsonObject | undefined): Set<string> {
   return new Set(Array.isArray(schema?.required) ? schema.required.filter((item): item is string => typeof item === 'string') : []);
 }
@@ -56,7 +60,7 @@ export function compareRequestSchema(beforeValue: unknown, afterValue: unknown, 
 
   const beforeType = schemaType(before);
   const afterType = schemaType(after);
-  if (beforeType !== undefined && afterType !== undefined && typeComparisonKey(beforeType) !== typeComparisonKey(afterType)) {
+  if (beforeType !== undefined && afterType !== undefined && !schemaTypesEqual(beforeType, afterType)) {
     context.changes.push({
       ruleId: 'REQUEST_TYPE_CHANGED', severity: 'high', location: `${context.location}/type`,
       message: `Request schema type changed from ${JSON.stringify(beforeType)} to ${JSON.stringify(afterType)}.`,
@@ -108,7 +112,7 @@ export function compareResponseSchema(beforeValue: unknown, afterValue: unknown,
 
   const beforeType = schemaType(before);
   const afterType = schemaType(after);
-  if (beforeType !== undefined && afterType !== undefined && typeComparisonKey(beforeType) !== typeComparisonKey(afterType)) {
+  if (beforeType !== undefined && afterType !== undefined && !schemaTypesEqual(beforeType, afterType)) {
     context.changes.push({
       ruleId: 'RESPONSE_TYPE_CHANGED', severity: 'high', location: `${context.location}/type`,
       message: `Response schema type changed from ${JSON.stringify(beforeType)} to ${JSON.stringify(afterType)}.`,

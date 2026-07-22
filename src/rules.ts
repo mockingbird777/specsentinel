@@ -56,6 +56,10 @@ export const rules: Record<string, RuleDefinition> = {
   'SECURITY_STRENGTHENED': {
     id: 'SECURITY_STRENGTHENED', title: 'Security requirement strengthened', defaultSeverity: 'high',
     description: 'Previously valid anonymous or authenticated requests require stronger credentials or scopes.'
+  },
+  'SECURITY_ACCESS_BROADENED': {
+    id: 'SECURITY_ACCESS_BROADENED', title: 'Declared security access broadened', defaultSeverity: 'high',
+    description: 'The candidate OpenAPI contract accepts an anonymous, credential, or scope alternative that the baseline did not accept.'
   }
 };
 

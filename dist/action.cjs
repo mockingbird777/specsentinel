@@ -7565,6 +7565,12 @@ var rules = {
     title: "Security requirement strengthened",
     defaultSeverity: "high",
     description: "Previously valid anonymous or authenticated requests require stronger credentials or scopes."
+  },
+  "SECURITY_ACCESS_BROADENED": {
+    id: "SECURITY_ACCESS_BROADENED",
+    title: "Declared security access broadened",
+    defaultSeverity: "high",
+    description: "The candidate OpenAPI contract accepts an anonymous, credential, or scope alternative that the baseline did not accept."
   }
 };
 var ruleList = Object.values(rules);
@@ -7576,6 +7582,15 @@ function schemaType(schema) {
   if (isObject(schema.properties)) return "object";
   if (schema.items !== void 0) return "array";
   return void 0;
+}
+function typeComparisonKey(type) {
+  if (Array.isArray(type)) {
+    return JSON.stringify([...new Set(type.map((member) => JSON.stringify(member)))].sort());
+  }
+  return JSON.stringify(type);
+}
+function schemaTypesEqual(before, after) {
+  return typeComparisonKey(before) === typeComparisonKey(after);
 }
 function requiredSet(schema) {
   return new Set(Array.isArray(schema?.required) ? schema.required.filter((item) => typeof item === "string") : []);
@@ -7599,7 +7614,7 @@ function compareRequestSchema(beforeValue, afterValue, context) {
   if (!before || !after) return;
   const beforeType = schemaType(before);
   const afterType = schemaType(after);
-  if (beforeType !== void 0 && afterType !== void 0 && JSON.stringify(beforeType) !== JSON.stringify(afterType)) {
+  if (beforeType !== void 0 && afterType !== void 0 && !schemaTypesEqual(beforeType, afterType)) {
     context.changes.push({
       ruleId: "REQUEST_TYPE_CHANGED",
       severity: "high",
@@ -7653,7 +7668,7 @@ function compareResponseSchema(beforeValue, afterValue, context) {
   if (!before || !after) return;
   const beforeType = schemaType(before);
   const afterType = schemaType(after);
-  if (beforeType !== void 0 && afterType !== void 0 && JSON.stringify(beforeType) !== JSON.stringify(afterType)) {
+  if (beforeType !== void 0 && afterType !== void 0 && !schemaTypesEqual(beforeType, afterType)) {
     context.changes.push({
       ruleId: "RESPONSE_TYPE_CHANGED",
       severity: "high",
@@ -7722,10 +7737,22 @@ function noStricter(candidate, baseline) {
   }
   return true;
 }
-function securityStrengthened(baseline, candidate) {
+function losesAcceptedAlternative(before, after) {
+  return before.some(
+    (beforeOption) => !after.some((afterOption) => noStricter(afterOption, beforeOption))
+  );
+}
+function allowsAnonymous(options) {
+  return options.some((option) => option.size === 0);
+}
+function compareSecurity(baseline, candidate) {
   const beforeOptions = normalize(baseline);
   const afterOptions = normalize(candidate);
-  return beforeOptions.some((before) => !afterOptions.some((after) => noStricter(after, before)));
+  return {
+    strengthened: losesAcceptedAlternative(beforeOptions, afterOptions),
+    accessBroadened: losesAcceptedAlternative(afterOptions, beforeOptions),
+    becameAnonymous: !allowsAnonymous(beforeOptions) && allowsAnonymous(afterOptions)
+  };
 }
 function effectiveSecurity(document, operation) {
   return Object.prototype.hasOwnProperty.call(operation, "security") ? operation.security : document.security;
@@ -7783,7 +7810,7 @@ function compareParameters(baseline, candidate, beforePath, afterPath, beforeOpe
     const afterSchema = parameterSchema(candidate, afterParameter);
     const beforeType = beforeSchema?.type;
     const afterType = afterSchema?.type;
-    if (beforeType !== void 0 && afterType !== void 0 && JSON.stringify(beforeType) !== JSON.stringify(afterType)) {
+    if (beforeType !== void 0 && afterType !== void 0 && !schemaTypesEqual(beforeType, afterType)) {
       add(changes, "PARAM_TYPE_CHANGED", `${location}/schema/type`, `Parameter '${name}' type changed from ${JSON.stringify(beforeType)} to ${JSON.stringify(afterType)}.`, beforeType, afterType);
     }
     const beforeEnum = Array.isArray(beforeSchema?.enum) ? beforeSchema.enum : void 0;
@@ -7905,8 +7932,13 @@ function diffOpenApi(input2) {
       compareResponses(input2.baseline, input2.candidate, beforeOperation, afterOperation, operationLocation, changes);
       const beforeSecurity = effectiveSecurity(input2.baseline, beforeOperation);
       const afterSecurity = effectiveSecurity(input2.candidate, afterOperation);
-      if (securityStrengthened(beforeSecurity, afterSecurity)) {
+      const security = compareSecurity(beforeSecurity, afterSecurity);
+      if (security.strengthened) {
         add(changes, "SECURITY_STRENGTHENED", `${operationLocation}/security`, "Security requirements became stricter for previously valid requests.", beforeSecurity ?? [], afterSecurity ?? []);
+      }
+      if (security.accessBroadened) {
+        const message = security.becameAnonymous ? "Declared security access broadened: this operation is now anonymously reachable under the candidate OpenAPI contract." : "Declared security access broadened: the candidate accepts a credential or scope alternative not accepted by the baseline OpenAPI contract.";
+        add(changes, "SECURITY_ACCESS_BROADENED", `${operationLocation}/security`, message, beforeSecurity ?? [], afterSecurity ?? []);
       }
     }
   }
@@ -8003,7 +8035,7 @@ main{width:min(1020px,calc(100% - 32px));margin:48px auto 80px}.hero{padding:32p
 .findings{display:grid;gap:14px;margin-top:22px}.finding{padding:22px;border:1px solid var(--line);border-left:4px solid #64748b;background:var(--panel);border-radius:14px}.finding.critical{border-left-color:#f43f5e}.finding.high{border-left-color:#fb7185}.finding.medium{border-left-color:#fbbf24}.finding.low{border-left-color:#22d3ee}.finding h2{font-size:17px;margin:12px 0}.badges{display:flex;gap:9px;align-items:center}.severity{text-transform:uppercase;font-size:11px;font-weight:900;letter-spacing:.1em}.location{color:#a5b4fc;word-break:break-all}details{margin-top:15px;color:var(--muted)}pre{overflow:auto;background:#080c18;padding:14px;border-radius:9px;color:#cbd5e1}.empty{padding:28px;text-align:center;color:#86efac}
 .source{margin:24px 0 0;text-align:center;color:var(--muted);font-size:13px}.source a{color:#c4b5fd;text-decoration:none}.source a:hover,.source a:focus-visible{text-decoration:underline}
 </style></head><body><main><section class="hero"><div class="eyebrow">OpenAPI contract intelligence</div><h1>SpecSentinel</h1><div class="meta">${escape(result.baseline)} \u2192 ${escape(result.candidate)}</div><span class="count">${result.summary.total} finding${result.summary.total === 1 ? "" : "s"}</span></section>
-<section class="findings">${rows || '<div class="empty">\u2713 No incompatible changes found.</div>'}</section><p class="source">Generated locally \xB7 <a href="https://github.com/mockingbird777/specsentinel" target="_blank" rel="noopener noreferrer">Explore SpecSentinel on GitHub \u2197</a></p></main><script type="application/json" id="specsentinel-data">${data}</script></body></html>`;
+<section class="findings">${rows || '<div class="empty">\u2713 No breaking or security-sensitive changes found.</div>'}</section><p class="source">Generated locally \xB7 <a href="https://github.com/mockingbird777/specsentinel" target="_blank" rel="noopener noreferrer">Explore SpecSentinel on GitHub \u2197</a></p></main><script type="application/json" id="specsentinel-data">${data}</script></body></html>`;
 }
 
 // src/reporters/markdown.ts
@@ -8020,7 +8052,7 @@ function markdownReport(result) {
     ""
   ];
   if (result.changes.length === 0) {
-    lines.push("\u2705 No incompatible changes found.");
+    lines.push("\u2705 No breaking or security-sensitive changes found.");
     return lines.join("\n");
   }
   lines.push("| Severity | Rule | Location | Change |", "| --- | --- | --- | --- |");
@@ -8054,7 +8086,10 @@ function sarifReport(result) {
             shortDescription: { text: rule.title },
             fullDescription: { text: rule.description },
             defaultConfiguration: { level: level(rule.defaultSeverity) },
-            properties: { severity: rule.defaultSeverity, tags: ["openapi", "compatibility"] }
+            properties: {
+              severity: rule.defaultSeverity,
+              tags: rule.id.startsWith("SECURITY_") ? ["openapi", "security"] : ["openapi", "compatibility"]
+            }
           }))
         }
       },
@@ -8103,7 +8138,7 @@ function terminalReport(result, color = true) {
     ""
   ];
   if (result.changes.length === 0) {
-    lines.push(color ? "\x1B[32m\u2713 No incompatible changes found.\x1B[0m" : "\u2713 No incompatible changes found.");
+    lines.push(color ? "\x1B[32m\u2713 No breaking or security-sensitive changes found.\x1B[0m" : "\u2713 No breaking or security-sensitive changes found.");
     return lines.join("\n");
   }
   for (const change of result.changes) {
@@ -8112,7 +8147,7 @@ function terminalReport(result, color = true) {
     lines.push(`  ${terminalText(change.message)}`);
   }
   const counts = ["critical", "high", "medium", "low", "info"].filter((severity) => result.summary.bySeverity[severity] > 0).map((severity) => `${result.summary.bySeverity[severity]} ${severity}`).join(", ");
-  lines.push("", `${result.summary.total} incompatible change${result.summary.total === 1 ? "" : "s"} (${counts})`);
+  lines.push("", `${result.summary.total} finding${result.summary.total === 1 ? "" : "s"} (${counts})`);
   return lines.join("\n");
 }
 

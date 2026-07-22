@@ -3,6 +3,12 @@ import { isObject, type JsonObject } from '../types.js';
 
 type SecurityOption = Map<string, Set<string>>;
 
+export interface SecurityComparison {
+  strengthened: boolean;
+  accessBroadened: boolean;
+  becameAnonymous: boolean;
+}
+
 function normalize(value: unknown): SecurityOption[] {
   if (value === undefined || (Array.isArray(value) && value.length === 0)) return [new Map()];
   if (!Array.isArray(value)) throw new SpecSentinelError('OpenAPI security must be an array of security requirement objects');
@@ -21,7 +27,7 @@ function normalize(value: unknown): SecurityOption[] {
   return options;
 }
 
-/** True when candidate credentials are a subset of credentials already required by baseline. */
+/** True when candidate requires no more schemes or scopes than baseline. */
 function noStricter(candidate: SecurityOption, baseline: SecurityOption): boolean {
   for (const [scheme, candidateScopes] of candidate) {
     const baselineScopes = baseline.get(scheme);
@@ -33,10 +39,37 @@ function noStricter(candidate: SecurityOption, baseline: SecurityOption): boolea
   return true;
 }
 
-export function securityStrengthened(baseline: unknown, candidate: unknown): boolean {
+function losesAcceptedAlternative(before: SecurityOption[], after: SecurityOption[]): boolean {
+  return before.some((beforeOption) =>
+    !after.some((afterOption) => noStricter(afterOption, beforeOption))
+  );
+}
+
+function allowsAnonymous(options: SecurityOption[]): boolean {
+  return options.some((option) => option.size === 0);
+}
+
+/**
+ * Compares the credential/scope alternatives declared by OpenAPI. This is a
+ * contract-level relation only; it does not inspect or make claims about the
+ * server's authorization implementation.
+ */
+export function compareSecurity(baseline: unknown, candidate: unknown): SecurityComparison {
   const beforeOptions = normalize(baseline);
   const afterOptions = normalize(candidate);
-  return beforeOptions.some((before) => !afterOptions.some((after) => noStricter(after, before)));
+  return {
+    strengthened: losesAcceptedAlternative(beforeOptions, afterOptions),
+    accessBroadened: losesAcceptedAlternative(afterOptions, beforeOptions),
+    becameAnonymous: !allowsAnonymous(beforeOptions) && allowsAnonymous(afterOptions),
+  };
+}
+
+export function securityStrengthened(baseline: unknown, candidate: unknown): boolean {
+  return compareSecurity(baseline, candidate).strengthened;
+}
+
+export function securityAccessBroadened(baseline: unknown, candidate: unknown): boolean {
+  return compareSecurity(baseline, candidate).accessBroadened;
 }
 
 export function effectiveSecurity(document: JsonObject, operation: JsonObject): unknown {

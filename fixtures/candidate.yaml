@@ -49,6 +49,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
+  /reports:
+    get:
+      operationId: listReports
+      security:
+        - ApiKey: []
+          OAuth2: [read:pets]
+        - ApiKey: []
+      responses:
+        '200': { description: Reports }
 components:
   securitySchemes:
     ApiKey:

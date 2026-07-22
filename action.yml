@@ -1,5 +1,5 @@
 name: SpecSentinel OpenAPI Contract Gate
-description: Detect breaking and security-strengthening OpenAPI changes in pull requests
+description: Detect breaking and security-sensitive OpenAPI changes in pull requests
 author: SpecSentinel contributors
 branding:
   icon: shield

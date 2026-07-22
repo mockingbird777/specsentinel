@@ -21,8 +21,9 @@ test('CLI emits JSON and exits 1 when the high threshold is reached', () => {
     resolve('dist/cli.js'), resolve('fixtures/baseline.yaml'), resolve('fixtures/candidate.yaml'), '--format', 'json'
   ], { encoding: 'utf8' });
   assert.equal(execution.status, 1, execution.stderr);
-  const report = JSON.parse(execution.stdout) as { summary: { total: number } };
+  const report = JSON.parse(execution.stdout) as { summary: { total: number }; changes: Array<{ ruleId: string }> };
   assert.ok(report.summary.total > 0);
+  assert.ok(report.changes.some((change) => change.ruleId === 'SECURITY_ACCESS_BROADENED'));
 });
 
 test('CLI returns 2 for invalid input', () => {
@@ -35,7 +36,7 @@ test('CLI returns 0 for compatible input', () => {
   const baseline = resolve('fixtures/baseline.yaml');
   const execution = spawnSync(process.execPath, [resolve('dist/cli.js'), baseline, baseline, '--no-color'], { encoding: 'utf8' });
   assert.equal(execution.status, 0, execution.stderr);
-  assert.match(execution.stdout, /No incompatible changes/);
+  assert.match(execution.stdout, /No breaking or security-sensitive changes/);
 });
 
 test('CLI demo shows bundled breaking changes without failing the shell', () => {

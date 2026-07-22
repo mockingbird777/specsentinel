@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Security-aware OpenAPI breaking-change detection that humans can read and CI can enforce.</strong>
+  <strong>Security-aware OpenAPI contract drift detection that humans can read and CI can enforce.</strong>
 </p>
 
 <p align="center">
@@ -14,14 +14,14 @@
   <img alt="OpenAPI 3.x" src="https://img.shields.io/badge/OpenAPI-3.x-6ba539?style=flat-square">
 </p>
 
-SpecSentinel compares two OpenAPI 3.x documents and flags client-contract incompatibilities before they reach an SDK or production consumer. It understands operations, parameters, recursive request and response schemas, local `$ref` components, and OpenAPI security alternatives. Reports work in a terminal, pull request, GitHub Code Scanning workflow, or self-contained HTML file.
+SpecSentinel compares two OpenAPI 3.x documents and flags client-contract incompatibilities plus declared security access broadening before a change reaches an SDK or production consumer. It understands operations, parameters, recursive request and response schemas, local `$ref` components, and OpenAPI security alternatives. Reports work in a terminal, pull request, GitHub Code Scanning workflow, or self-contained HTML file.
 
 <p align="center"><a href="https://mockingbird777.github.io/specsentinel/"><strong>Explore a live contract-diff report</strong></a> · <a href="#30-second-demo">Run the zero-setup demo</a> · <a href="https://github.com/mockingbird777/specsentinel/issues/new/choose">Propose a rule</a></p>
 
 ## Why SpecSentinel
 
 - **Useful signal, not text noise.** It compares API semantics instead of diffing YAML lines.
-- **Security-aware.** It flags newly required credentials, removed auth alternatives, and added OAuth scopes.
+- **Security-aware in both directions.** It flags newly required credentials as client breaks, and newly anonymous access, removed OAuth/OpenID scopes, or weaker OR alternatives as declared access broadening.
 - **CI-native.** Severity thresholds, stable rule IDs, scoped suppressions, SARIF, and deterministic exit codes are built in.
 - **Portable.** JSON and YAML input, five report formats, Node.js 20+, and one small runtime dependency.
 - **Embeddable.** Use the CLI or import the typed diff engine in a governance tool.
@@ -30,7 +30,7 @@ SpecSentinel compares two OpenAPI 3.x documents and flags client-contract incomp
 | --- | --- |
 | A line-by-line YAML diff | OpenAPI semantics and client compatibility |
 | A generic schema validator | Changes between two valid contracts |
-| A breaking-change list only | Security alternatives, OAuth scopes, stable rule IDs, and actionable locations |
+| A breaking-change list only | Directional security alternatives, OAuth/OpenID scopes, stable rule IDs, and actionable locations |
 | A CI-only service | The same deterministic engine locally, in Actions, or as a library |
 
 ## 30-second demo
@@ -51,9 +51,11 @@ Comparing demo/baseline.yaml → demo/candidate.yaml
   Path '/legacy' was removed.
 [HIGH] SECURITY_STRENGTHENED #/paths/~1pets/get/security
   Security requirements became stricter for previously valid requests.
+[HIGH] SECURITY_ACCESS_BROADENED #/paths/~1reports/get/security
+  Declared security access broadened: the candidate accepts a credential or scope alternative not accepted by the baseline OpenAPI contract.
 
 …
-16 incompatible changes (2 critical, 14 high)
+17 findings (2 critical, 15 high)
 ```
 
 The showcase exits successfully so it is safe to paste into a shell. Add `--fail-on high` to exercise the CI gate and receive exit code `1`.
@@ -99,8 +101,13 @@ npx specsentinel old.yaml new.yaml --format html --output contract-report.html
 | `RESPONSE_PROPERTY_REMOVED` | high | A response property disappeared recursively |
 | `RESPONSE_TYPE_CHANGED` | high | A response schema type changed recursively |
 | `SECURITY_STRENGTHENED` | high | Anonymous access/auth alternatives were removed, schemes were added, or OAuth scopes became stricter |
+| `SECURITY_ACCESS_BROADENED` | high | The declared contract newly permits anonymous access, removes required OAuth/OpenID scopes, or adds a weaker authentication alternative |
 
 Every finding contains `ruleId`, `severity`, an RFC 6901-style OpenAPI location, a plain-English message, and structured `before` / `after` values where applicable.
+
+Security requirement objects are treated as AND requirements and the surrounding `security` array as OR alternatives. An empty `security` array or an empty `{}` alternative permits anonymous access under OpenAPI semantics. `SECURITY_ACCESS_BROADENED` means only that the candidate contract declares a credential or scope combination that the baseline did not; it is a review signal, not proof that the deployed server has an authorization vulnerability.
+
+OpenAPI 3.1 `type` arrays are compared as order-insensitive sets for parameters and recursive request/response schemas, so a union reorder is not reported as a change.
 
 ## Reports
 
@@ -226,7 +233,7 @@ SpecSentinel resolves internal JSON Pointer references such as `#/components/sch
 
 ## Project metadata
 
-Suggested GitHub description: **Catch OpenAPI breaking changes and security regressions before they ship.**
+Suggested GitHub description: **Catch OpenAPI breaking changes and security-sensitive contract drift before they ship.**
 
 Suggested topics: `openapi`, `api-governance`, `contract-testing`, `breaking-changes`, `devsecops`, `sarif`, `github-actions`, `typescript`. Machine-readable values live in [`REPO_META.json`](REPO_META.json).
 
@@ -234,6 +241,6 @@ Suggested topics: `openapi`, `api-governance`, `contract-testing`, `breaking-cha
 
 The most useful first contributions are a minimal baseline/candidate pair for a missing compatibility edge case, a false-positive report with a counterexample, or a focused reporter improvement. Start with [CONTRIBUTING.md](CONTRIBUTING.md) or [propose a rule](https://github.com/mockingbird777/specsentinel/issues/new/choose). Read the [Code of Conduct](CODE_OF_CONDUCT.md), and use the private process in [SECURITY.md](SECURITY.md) for vulnerabilities.
 
-If SpecSentinel prevents a client-breaking change in a real API, a GitHub star helps other API teams find it.
+If SpecSentinel catches a client break or an unintended access-policy change in a real API, a GitHub star helps other API teams find it.
 
 Released under the [MIT License](LICENSE).

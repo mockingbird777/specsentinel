@@ -1,5 +1,5 @@
 {
-  "description": "Catch OpenAPI breaking changes and security regressions before they ship.",
+  "description": "Catch OpenAPI breaking changes and security-sensitive contract drift before they ship.",
   "homepage": "https://mockingbird777.github.io/specsentinel/",
   "topics": [
     "openapi",

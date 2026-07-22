@@ -18,7 +18,7 @@ export function markdownReport(result: DiffResult): string {
     `**Findings:** ${result.summary.total}`, ''
   ];
   if (result.changes.length === 0) {
-    lines.push('✅ No incompatible changes found.');
+    lines.push('✅ No breaking or security-sensitive changes found.');
     return lines.join('\n');
   }
   lines.push('| Severity | Rule | Location | Change |', '| --- | --- | --- | --- |');

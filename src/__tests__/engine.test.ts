@@ -6,7 +6,7 @@ import { diffOpenApi, makeResult } from '../diff/engine.js';
 import { loadOpenApi, parseOpenApi } from '../loader.js';
 import { resolveObject, resolvePointer } from '../ref.js';
 import { formatResult } from '../reporters/index.js';
-import type { Change } from '../types.js';
+import type { Change, JsonObject } from '../types.js';
 
 async function fixtureDiff() {
   const [baseline, candidate] = await Promise.all([
@@ -27,7 +27,7 @@ test('detects operation, parameter, schema, response, and security breaks throug
     'PATH_REMOVED', 'OPERATION_REMOVED', 'PARAM_REQUIRED_ADDED', 'PARAM_TYPE_CHANGED',
     'PARAM_ENUM_NARROWED', 'REQUEST_BODY_REQUIRED', 'REQUEST_PROPERTY_REQUIRED',
     'REQUEST_TYPE_CHANGED', 'RESPONSE_REMOVED', 'RESPONSE_PROPERTY_REMOVED',
-    'RESPONSE_TYPE_CHANGED', 'SECURITY_STRENGTHENED'
+    'RESPONSE_TYPE_CHANGED', 'SECURITY_STRENGTHENED', 'SECURITY_ACCESS_BROADENED'
   ]) assert.ok(ids.has(expected), `missing ${expected}`);
   assert.ok(result.changes.some((change) => change.location.includes('Pet') === false && change.message.includes("Response property 'tag'")));
   assert.equal(result.summary.total, result.changes.length);
@@ -59,7 +59,7 @@ paths:
   assert.equal(result.changes.filter((change) => change.ruleId === 'PARAM_REQUIRED_ADDED').length, 1);
 });
 
-test('does not flag security that becomes weaker by adding anonymous access', () => {
+test('detects document-level security becoming anonymous through an empty security array', () => {
   const baseline = parseOpenApi(`
 openapi: 3.0.3
 info: { title: T, version: '1' }
@@ -70,9 +70,102 @@ paths:
       responses: { '200': { description: OK } }
 `);
   const candidate = structuredClone(baseline);
-  candidate.security = [{ ApiKey: [] }, {}];
+  candidate.security = [];
   const result = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  const broadened = result.changes.filter((change) => change.ruleId === 'SECURITY_ACCESS_BROADENED');
+  assert.equal(broadened.length, 1);
+  assert.match(broadened[0]?.message ?? '', /anonymously reachable under the candidate OpenAPI contract/);
+  assert.deepEqual(broadened[0]?.before, [{ ApiKey: [] }]);
+  assert.deepEqual(broadened[0]?.after, []);
   assert.ok(!result.changes.some((change) => change.ruleId === 'SECURITY_STRENGTHENED'));
+});
+
+test('detects an operation override that adds an anonymous security alternative', () => {
+  const baseline = parseOpenApi(`
+openapi: 3.1.0
+info: { title: T, version: '1' }
+security: [{ ApiKey: [] }]
+paths:
+  /status:
+    get:
+      responses: { '200': { description: OK } }
+`);
+  const candidate = structuredClone(baseline);
+  const get = ((candidate.paths as Record<string, JsonObject>)['/status'] as JsonObject).get as JsonObject;
+  get.security = [{ ApiKey: [] }, {}];
+  const result = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(result.changes.filter((change) => change.ruleId === 'SECURITY_ACCESS_BROADENED').length, 1);
+  assert.ok(!result.changes.some((change) => change.ruleId === 'SECURITY_STRENGTHENED'));
+});
+
+test('detects removed OAuth scopes and a newly added weaker OR alternative', () => {
+  const scopedBaseline = parseOpenApi(`
+openapi: 3.1.0
+info: { title: T, version: '1' }
+security: [{ OAuth: [read, write] }]
+paths:
+  /status:
+    get:
+      responses: { '200': { description: OK } }
+`);
+  const scopedCandidate = structuredClone(scopedBaseline);
+  scopedCandidate.security = [{ OAuth: ['read'] }];
+  const scoped = diffOpenApi({ baseline: scopedBaseline, candidate: scopedCandidate, generatedAt: 'fixed' });
+  assert.equal(scoped.changes.filter((change) => change.ruleId === 'SECURITY_ACCESS_BROADENED').length, 1);
+  assert.ok(!scoped.changes.some((change) => change.ruleId === 'SECURITY_STRENGTHENED'));
+
+  const alternativeBaseline = structuredClone(scopedBaseline);
+  alternativeBaseline.security = [{ ApiKey: [], OAuth: ['read'] }];
+  const alternativeCandidate = structuredClone(alternativeBaseline);
+  alternativeCandidate.security = [
+    { ApiKey: [], OAuth: ['read'] },
+    { ApiKey: [] },
+  ];
+  const alternative = diffOpenApi({ baseline: alternativeBaseline, candidate: alternativeCandidate, generatedAt: 'fixed' });
+  assert.equal(alternative.changes.filter((change) => change.ruleId === 'SECURITY_ACCESS_BROADENED').length, 1);
+});
+
+test('does not report equivalent reordered security alternatives or a redundant stronger alternative', () => {
+  const baseline = parseOpenApi(`
+openapi: 3.1.0
+info: { title: T, version: '1' }
+security:
+  - OAuth: [read, write]
+  - ApiKey: []
+paths:
+  /status:
+    get:
+      responses: { '200': { description: OK } }
+`);
+  const candidate = structuredClone(baseline);
+  candidate.security = [
+    { ApiKey: [] },
+    { OAuth: ['write', 'read'] },
+    { ApiKey: [], OAuth: ['admin'] },
+  ];
+  const result = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(result.changes.filter((change) => change.ruleId.startsWith('SECURITY_')).length, 0);
+});
+
+test('reports incomparable scheme replacement in deterministic rule order', () => {
+  const baseline = parseOpenApi(`
+openapi: 3.1.0
+info: { title: T, version: '1' }
+security: [{ ApiKey: [] }]
+paths:
+  /status:
+    get:
+      responses: { '200': { description: OK } }
+`);
+  const candidate = structuredClone(baseline);
+  candidate.security = [{ OAuth: ['read'] }];
+  const first = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  const second = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.deepEqual(first, second);
+  assert.deepEqual(
+    first.changes.map((change) => change.ruleId),
+    ['SECURITY_ACCESS_BROADENED', 'SECURITY_STRENGTHENED'],
+  );
 });
 
 test('detects removed security alternatives and added scopes, and rejects malformed requirements', () => {
@@ -126,7 +219,7 @@ test('renders machine-readable JSON and SARIF plus Markdown and standalone HTML'
   assert.doesNotMatch(html, /(?:og:image|twitter:image)/);
   assert.match(html, /<a href="https:\/\/github\.com\/mockingbird777\/specsentinel" target="_blank" rel="noopener noreferrer">Explore SpecSentinel on GitHub ↗<\/a>/);
   assert.doesNotMatch(html, /<(?:script|img|link)\b[^>]*(?:src|href)="https?:\/\//);
-  assert.match(formatResult(makeResult({ baseline: {}, candidate: {}, generatedAt: 'fixed' }, []), 'html'), /No incompatible changes/);
+  assert.match(formatResult(makeResult({ baseline: {}, candidate: {}, generatedAt: 'fixed' }, []), 'html'), /No breaking or security-sensitive changes/);
 });
 
 test('rejects documents that are not OpenAPI 3.x', () => {
@@ -179,6 +272,34 @@ components:
   const removals = result.changes.filter((change) => change.ruleId === 'RESPONSE_PROPERTY_REMOVED');
   assert.equal(removals.length, 1);
   assert.match(removals[0]?.location ?? '', /a~1b~0c$/);
+});
+
+test('detects security access broadening through local path-item refs and rejects external refs', () => {
+  const baseline = parseOpenApi(`
+openapi: 3.1.0
+info: { title: T, version: '1' }
+paths:
+  /status: { $ref: '#/components/pathItems/Status' }
+components:
+  pathItems:
+    Status:
+      get:
+        security: [{ OpenID: [profile, email] }]
+        responses: { '200': { description: OK } }
+`);
+  const candidate = structuredClone(baseline);
+  const pathItems = (candidate.components as Record<string, Record<string, JsonObject>>).pathItems;
+  const get = pathItems?.Status?.get as JsonObject;
+  get.security = [{ OpenID: ['profile'] }];
+  const result = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(result.changes.filter((change) => change.ruleId === 'SECURITY_ACCESS_BROADENED').length, 1);
+
+  const external = structuredClone(candidate);
+  (external.paths as Record<string, unknown>)['/status'] = { $ref: './paths.yaml#/Status' };
+  assert.throws(
+    () => diffOpenApi({ baseline, candidate: external, generatedAt: 'fixed' }),
+    /External \$ref is not supported/,
+  );
 });
 
 test('detects removed request media types and preserves parameter names containing colons', () => {
@@ -330,4 +451,67 @@ test('type-union reordering is order-insensitive for JSON input too', () => {
     result.changes.filter((change) => change.ruleId === 'REQUEST_TYPE_CHANGED').length,
     0,
   );
+});
+
+test('type-union reordering is order-insensitive for parameter schemas and local refs', () => {
+  const baseline = parseOpenApi(`
+openapi: 3.1.0
+info: { title: T, version: '1' }
+paths:
+  /widgets:
+    get:
+      parameters:
+        - name: filter
+          in: query
+          schema: { $ref: '#/components/schemas/Filter' }
+      responses: { '200': { description: OK } }
+components:
+  schemas:
+    Filter: { type: [string, "null"] }
+`);
+  const candidate = structuredClone(baseline);
+  const schemas = (candidate.components as Record<string, Record<string, JsonObject>>).schemas;
+  if (schemas?.Filter) schemas.Filter.type = ['null', 'string'];
+  const reordered = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(reordered.changes.filter((change) => change.ruleId === 'PARAM_TYPE_CHANGED').length, 0);
+
+  if (schemas?.Filter) schemas.Filter.type = ['string'];
+  const narrowed = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(narrowed.changes.filter((change) => change.ruleId === 'PARAM_TYPE_CHANGED').length, 1);
+});
+
+test('renders hostile security requirement names safely in every report format', () => {
+  const hostile = '</script><script>globalThis.compromised=true</script>\u001b';
+  const baseline = parseOpenApi(JSON.stringify({
+    openapi: '3.1.0', info: { title: 'T', version: '1' },
+    paths: {
+      '/status': {
+        get: {
+          security: [{ [hostile]: [], ApiKey: [] }],
+          responses: { '200': { description: 'OK' } },
+        },
+      },
+    },
+  }));
+  const candidate = structuredClone(baseline);
+  const get = ((candidate.paths as Record<string, JsonObject>)['/status'] as JsonObject).get as JsonObject;
+  get.security = [{ [hostile]: [] }];
+  const result = diffOpenApi({ baseline, candidate, generatedAt: 'fixed' });
+  assert.equal(result.changes.filter((change) => change.ruleId === 'SECURITY_ACCESS_BROADENED').length, 1);
+
+  const json = formatResult(result, 'json');
+  assert.equal((JSON.parse(json) as { changes: Change[] }).changes[0]?.ruleId, 'SECURITY_ACCESS_BROADENED');
+  assert.match(formatResult(result, 'markdown'), /SECURITY_ACCESS_BROADENED/);
+  const html = formatResult(result, 'html');
+  assert.match(html, /SECURITY_ACCESS_BROADENED/);
+  assert.doesNotMatch(html, /<script>globalThis\.compromised/);
+  assert.match(html, /\\u003c\/script>/);
+  const terminal = formatResult(result, 'terminal', { color: false });
+  assert.match(terminal, /SECURITY_ACCESS_BROADENED/);
+  assert.doesNotMatch(terminal, /\u001b/);
+
+  const sarif = JSON.parse(formatResult(result, 'sarif')) as {
+    runs: Array<{ tool: { driver: { rules: Array<{ properties: { tags: string[] } }> } } }>;
+  };
+  assert.deepEqual(sarif.runs[0]?.tool.driver.rules[0]?.properties.tags, ['openapi', 'security']);
 });

@@ -21,7 +21,10 @@ export function sarifReport(result: DiffResult): string {
             id: rule.id, name: rule.title.replaceAll(' ', ''),
             shortDescription: { text: rule.title }, fullDescription: { text: rule.description },
             defaultConfiguration: { level: level(rule.defaultSeverity) },
-            properties: { severity: rule.defaultSeverity, tags: ['openapi', 'compatibility'] }
+            properties: {
+              severity: rule.defaultSeverity,
+              tags: rule.id.startsWith('SECURITY_') ? ['openapi', 'security'] : ['openapi', 'compatibility']
+            }
           }))
         }
       },

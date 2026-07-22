@@ -1,8 +1,8 @@
 import { resolveObject, pointerPart } from '../ref.js';
 import { rules } from '../rules.js';
 import { isObject, severityOrder, type Change, type DiffResult, type DiffSummary, type JsonObject, type Severity } from '../types.js';
-import { compareRequestSchema, compareResponseSchema } from './schema.js';
-import { effectiveSecurity, securityStrengthened } from './security.js';
+import { compareRequestSchema, compareResponseSchema, schemaTypesEqual } from './schema.js';
+import { compareSecurity, effectiveSecurity } from './security.js';
 
 const methods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const;
 
@@ -80,7 +80,7 @@ function compareParameters(
     const afterSchema = parameterSchema(candidate, afterParameter);
     const beforeType = beforeSchema?.type;
     const afterType = afterSchema?.type;
-    if (beforeType !== undefined && afterType !== undefined && JSON.stringify(beforeType) !== JSON.stringify(afterType)) {
+    if (beforeType !== undefined && afterType !== undefined && !schemaTypesEqual(beforeType, afterType)) {
       add(changes, 'PARAM_TYPE_CHANGED', `${location}/schema/type`, `Parameter '${name}' type changed from ${JSON.stringify(beforeType)} to ${JSON.stringify(afterType)}.`, beforeType, afterType);
     }
     const beforeEnum = Array.isArray(beforeSchema?.enum) ? beforeSchema.enum : undefined;
@@ -209,8 +209,15 @@ export function diffOpenApi(input: DiffInput): DiffResult {
 
       const beforeSecurity = effectiveSecurity(input.baseline, beforeOperation);
       const afterSecurity = effectiveSecurity(input.candidate, afterOperation);
-      if (securityStrengthened(beforeSecurity, afterSecurity)) {
+      const security = compareSecurity(beforeSecurity, afterSecurity);
+      if (security.strengthened) {
         add(changes, 'SECURITY_STRENGTHENED', `${operationLocation}/security`, 'Security requirements became stricter for previously valid requests.', beforeSecurity ?? [], afterSecurity ?? []);
+      }
+      if (security.accessBroadened) {
+        const message = security.becameAnonymous
+          ? 'Declared security access broadened: this operation is now anonymously reachable under the candidate OpenAPI contract.'
+          : 'Declared security access broadened: the candidate accepts a credential or scope alternative not accepted by the baseline OpenAPI contract.';
+        add(changes, 'SECURITY_ACCESS_BROADENED', `${operationLocation}/security`, message, beforeSecurity ?? [], afterSecurity ?? []);
       }
     }
   }
