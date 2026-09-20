@@ -53,7 +53,7 @@
   },
   "homepage": "https://github.com/mockingbird777/specsentinel#readme",
   "dependencies": {
-    "yaml": "^2.8.0"
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
